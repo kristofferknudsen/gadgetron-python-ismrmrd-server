@@ -24,9 +24,6 @@ def process(connection, config, params):
     logging.info("Params: \n%s", params)
 
     for group in groups(connection, lambda acq: acq.isFlagSet(ismrmrd.ACQ_LAST_IN_SLICE)):
-        logging.info(len(group))
-        logging.info(group)
-
         process_group(group, config, params)
 
 
@@ -34,7 +31,7 @@ def process_group(group, config, params):
 
     data = [acquisition.data for acquisition in group]
 
-    logging.info("Received %d acquisitions.", len(data))
+    logging.info("Processing %d acquisitions.", len(data))
 
     data = np.stack(data, axis=-1)
     data = fft.fftshift(data, axes=(1, 2))
@@ -45,8 +42,6 @@ def process_group(group, config, params):
     data = np.square(data)
     data = np.sum(data, axis=0)
     data = np.sqrt(data)
-
-    print(data)
 
     plt.imshow(data)
     plt.show()

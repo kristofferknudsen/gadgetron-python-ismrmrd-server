@@ -5,6 +5,7 @@ import ismrmrd
 import ctypes
 
 import logging
+import socket
 import numpy as np
 
 
@@ -27,6 +28,9 @@ class Connection:
     def __iter__(self):
         return self
 
+    def read(self, nbytes):
+        return self.socket.recv(nbytes, socket.MSG_WAITALL)
+
     def next(self):
 
         id = self.read_gadget_message_identifier()
@@ -36,11 +40,11 @@ class Connection:
         return handler()
 
     def read_gadget_message_identifier(self):
-        identifier_bytes = self.socket.recv(constants.SIZEOF_GADGET_MESSAGE_IDENTIFIER)
+        identifier_bytes = self.read(constants.SIZEOF_GADGET_MESSAGE_IDENTIFIER)
         return constants.GadgetMessageIdentifier.unpack(identifier_bytes)[0]
 
     def read_gadget_message_length(self):
-        length_bytes = self.socket.recv(constants.SIZEOF_GADGET_MESSAGE_LENGTH)
+        length_bytes = self.read(constants.SIZEOF_GADGET_MESSAGE_LENGTH)
         return constants.GadgetMessageLength.unpack(length_bytes)[0]
 
     def unknown_message_identifier(self, id):
@@ -48,7 +52,7 @@ class Connection:
         raise StopIteration
 
     def read_gadget_message_config_file(self):
-        config_file_bytes = self.socket.recv(constants.SIZEOF_GADGET_MESSAGE_CONFIGURATION_FILE)
+        config_file_bytes = self.read(constants.SIZEOF_GADGET_MESSAGE_CONFIGURATION_FILE)
         config_file = constants.GadgetMessageConfigurationFile.unpack(config_file_bytes)[0]
 
         return config_file
@@ -61,21 +65,21 @@ class Connection:
         length = self.read_gadget_message_length()
         logging.info("Parameter script length: %d", length)
 
-        return self.socket.recv(length)
+        return self.read(length)
 
     def read_gadget_message_close(self):
         raise StopIteration
 
     def read_gadget_message_ismrmrd_acquisition(self):
-        header_bytes = self.socket.recv(ctypes.sizeof(ismrmrd.AcquisitionHeader))
+        header_bytes = self.read(ctypes.sizeof(ismrmrd.AcquisitionHeader))
         acquisition = ismrmrd.Acquisition(buffer(header_bytes))
 
         nentries = acquisition.number_of_samples * acquisition.active_channels
 
-        data_bytes = self.socket.recv(nentries * constants.SIZEOF_ISMRMRD_DATA_TYPE)
-        trajectory_bytes = self.socket.recv(nentries *
-                                            acquisition.trajectory_dimensions *
-                                            constants.SIZEOF_ISMRMRD_TRAJECTORY_TYPE)
+        data_bytes = self.read(nentries * constants.SIZEOF_ISMRMRD_DATA_TYPE)
+        trajectory_bytes = self.read(nentries *
+                                     acquisition.trajectory_dimensions *
+                                     constants.SIZEOF_ISMRMRD_TRAJECTORY_TYPE)
 
         data = np.frombuffer(data_bytes, dtype=np.complex64)
         trajectory = np.frombuffer(trajectory_bytes, dtype=np.float32)
