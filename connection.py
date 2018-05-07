@@ -14,8 +14,8 @@ class Connection:
     This is a docstring. It should be a good one.
     """
 
-    def __init__(self, socket):
-        self.socket = socket
+    def __init__(self, reader):
+        self.reader = reader
 
         self.handlers = {
             constants.GADGET_MESSAGE_CONFIG_FILE: self.read_gadget_message_config_file,
@@ -25,34 +25,31 @@ class Connection:
             constants.GADGET_MESSAGE_ISMRMRD_ACQUISITION: self.read_gadget_message_ismrmrd_acquisition
         }
 
-    def __iter__(self):
+    def __aiter__(self):
         return self
 
-    def read(self, nbytes):
-        return self.socket.recv(nbytes, socket.MSG_WAITALL)
+    async def __anext__(self):
 
-    def next(self):
-
-        id = self.read_gadget_message_identifier()
+        id = await self.read_gadget_message_identifier()
 
         handler = self.handlers.get(id, lambda: self.unknown_message_identifier(id))
 
-        return handler()
+        return await handler()
 
-    def read_gadget_message_identifier(self):
-        identifier_bytes = self.read(constants.SIZEOF_GADGET_MESSAGE_IDENTIFIER)
+    async def read_gadget_message_identifier(self):
+        identifier_bytes = await self.reader.read(constants.SIZEOF_GADGET_MESSAGE_IDENTIFIER)
         return constants.GadgetMessageIdentifier.unpack(identifier_bytes)[0]
 
-    def read_gadget_message_length(self):
-        length_bytes = self.read(constants.SIZEOF_GADGET_MESSAGE_LENGTH)
+    async def read_gadget_message_length(self):
+        length_bytes = await self.reader.read(constants.SIZEOF_GADGET_MESSAGE_LENGTH)
         return constants.GadgetMessageLength.unpack(length_bytes)[0]
 
     def unknown_message_identifier(self, id):
         logging.error("Received unknown message type: %d", id)
         raise StopIteration
 
-    def read_gadget_message_config_file(self):
-        config_file_bytes = self.read(constants.SIZEOF_GADGET_MESSAGE_CONFIGURATION_FILE)
+    async def read_gadget_message_config_file(self):
+        config_file_bytes = await self.reader.read(constants.SIZEOF_GADGET_MESSAGE_CONFIGURATION_FILE)
         config_file = constants.GadgetMessageConfigurationFile.unpack(config_file_bytes)[0]
 
         return config_file
@@ -61,23 +58,23 @@ class Connection:
         # TODO: This.
         raise Exception("I don't know how to 'config script'.")
 
-    def read_gadget_message_parameter_script(self):
-        length = self.read_gadget_message_length()
+    async def read_gadget_message_parameter_script(self):
+        length = await self.read_gadget_message_length()
         logging.info("Parameter script length: %d", length)
 
-        return self.read(length)
+        return await self.reader.read(length)
 
     def read_gadget_message_close(self):
-        raise StopIteration
+        raise StopAsyncIteration
 
-    def read_gadget_message_ismrmrd_acquisition(self):
-        header_bytes = self.read(ctypes.sizeof(ismrmrd.AcquisitionHeader))
-        acquisition = ismrmrd.Acquisition(buffer(header_bytes))
+    async def read_gadget_message_ismrmrd_acquisition(self):
+        header_bytes = await self.reader.readexactly(ctypes.sizeof(ismrmrd.AcquisitionHeader))
+        acquisition = ismrmrd.Acquisition(header_bytes)
 
         nentries = acquisition.number_of_samples * acquisition.active_channels
 
-        data_bytes = self.read(nentries * constants.SIZEOF_ISMRMRD_DATA_TYPE)
-        trajectory_bytes = self.read(nentries *
+        data_bytes = await self.reader.readexactly(nentries * constants.SIZEOF_ISMRMRD_DATA_TYPE)
+        trajectory_bytes = await self.reader.readexactly(nentries *
                                      acquisition.trajectory_dimensions *
                                      constants.SIZEOF_ISMRMRD_TRAJECTORY_TYPE)
 
