@@ -8,9 +8,9 @@ import numpy.fft as fft
 import matplotlib.pyplot as plt
 
 
-def groups(iterator, predicate):
+def groups(iterable, predicate):
     group = []
-    for item in iterator:
+    for item in iterable:
         group.append(item)
 
         if predicate(item):
@@ -20,8 +20,8 @@ def groups(iterator, predicate):
 
 def process(connection, config, params):
     logging.info("Processing connection.")
-    logging.info("Config: \n%s", config)
-    logging.info("Params: \n%s", params)
+    logging.info("Config: \n%s", config.decode("utf-8"))
+    logging.info("Params: \n%s", params.decode("utf-8"))
 
     for group in groups(connection, lambda acq: acq.isFlagSet(ismrmrd.ACQ_LAST_IN_SLICE)):
         process_group(group, config, params)

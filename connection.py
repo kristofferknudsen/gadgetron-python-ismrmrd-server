@@ -16,7 +16,7 @@ class Connection:
 
     def __init__(self, socket):
         self.socket = socket
-
+        self.is_exhausted = False
         self.handlers = {
             constants.GADGET_MESSAGE_CONFIG_FILE: self.read_gadget_message_config_file,
             constants.GADGET_MESSAGE_CONFIG_SCRIPT: self.read_gadget_message_config_script,
@@ -26,15 +26,21 @@ class Connection:
         }
 
     def __iter__(self):
-        return self
+        while not self.is_exhausted:
+            yield self.next()
+
+    def __next__(self):
+        return self.next()
 
     def read(self, nbytes):
         return self.socket.recv(nbytes, socket.MSG_WAITALL)
 
+    def send(self, foo):
+        pass
+
     def next(self):
 
         id = self.read_gadget_message_identifier()
-
         handler = self.handlers.get(id, lambda: self.unknown_message_identifier(id))
 
         return handler()
@@ -68,11 +74,12 @@ class Connection:
         return self.read(length)
 
     def read_gadget_message_close(self):
+        self.is_exhausted = True
         raise StopIteration
 
     def read_gadget_message_ismrmrd_acquisition(self):
         header_bytes = self.read(ctypes.sizeof(ismrmrd.AcquisitionHeader))
-        acquisition = ismrmrd.Acquisition(buffer(header_bytes))
+        acquisition = ismrmrd.Acquisition(header_bytes)
 
         nentries = acquisition.number_of_samples * acquisition.active_channels
 
