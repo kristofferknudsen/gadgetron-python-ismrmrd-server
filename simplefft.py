@@ -23,8 +23,16 @@ def process(connection, config, params):
     logging.info("Config: \n%s", config.decode("utf-8"))
     logging.info("Params: \n%s", params.decode("utf-8"))
 
+    # First group in the simple_gre.h5 dataset inexplicably contains 129 acquisitions.
+    # We discard one to preserve the sanity of the gadgetron ismrmrd client (it expects
+    # images that are 256x128, not 256x129).
+    discard = next(connection)
+
     for group in groups(connection, lambda acq: acq.isFlagSet(ismrmrd.ACQ_LAST_IN_SLICE)):
-        process_group(group, config, params)
+        image = process_group(group, config, params)
+
+        logging.info("Sending image to client:\n%s", image)
+        connection.send_image(image)
 
 
 def process_group(group, config, params):
@@ -43,7 +51,6 @@ def process_group(group, config, params):
     data = np.sum(data, axis=0)
     data = np.sqrt(data)
 
-    plt.imshow(data)
-    plt.show()
+    return ismrmrd.Image.from_array(data, acquisition=group[0])
 
 
