@@ -5,29 +5,17 @@ import simplefft
 
 import argparse
 import logging
-import asyncio
 
 defaults = {
     'host': 'localhost',
-    'port': 9002,
-    "verbose": True
+    'port': 9002
 }
 
 
 def main(args):
-    loop = asyncio.get_event_loop()
-    server_coro = asyncio.start_server(lambda r,w: gt.handler(r,w,simplefft.process),host=args.host,port= args.port)
-    server = loop.run_until_complete(server_coro)
-    host = server.sockets[0].getsockname()  # <4>
-    print('Serving on {}. Hit CTRL-C to stop.'.format(host))  # <5>
-    try:
-        loop.run_forever()  # <6>
-    except KeyboardInterrupt:  # CTRL+C pressed
-        pass
-    print('Server shutting down.')
-    server.close()  # <7>
-    loop.run_until_complete(server.wait_closed())  # <8>
-    loop.close()  # <9>
+
+    server = gt.Server(args.host, args.port, simplefft.process)
+    server.serve()
 
 
 if __name__ == '__main__':
