@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
-import server as gt
 import simplefft
+from server import Server
 
 import argparse
 import logging
@@ -14,7 +14,7 @@ defaults = {
 
 def main(args):
 
-    server = gt.Server(args.host, args.port, simplefft.process)
+    server = Server(args.host, args.port, simplefft.process)
     server.serve()
 
 

@@ -28,7 +28,7 @@ def process(connection, config, params):
     # images that are 256x128, not 256x129).
     discard = next(connection)
 
-    for group in groups(connection, lambda acq: acq.isFlagSet(ismrmrd.ACQ_LAST_IN_SLICE)):
+    for group in groups(connection, lambda acq: acq.is_flag_set(ismrmrd.ACQ_LAST_IN_SLICE)):
         image = process_group(group, config, params)
 
         logging.info("Sending image to client:\n%s", image)

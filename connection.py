@@ -39,20 +39,15 @@ class Connection:
 
     def send_image(self, image):
         self.socket.send(constants.GadgetMessageIdentifier.pack(constants.GADGET_MESSAGE_ISMRMRD_IMAGE))
-        self.socket.send(image.getHead())
-        self.socket.send(constants.GadgetMessageAttribLength.pack(0))
-        self.socket.send(image.data.tobytes())
+        image.serialize_into(self.socket.send)
 
     def send_acquisition(self, acquisition):
         self.socket.send(constants.GadgetMessageIdentifier.pack(constants.GADGET_MESSAGE_ISMRMRD_ACQUISITION))
-        self.socket.send(acquisition.getHead())
-        self.socket.send(acquisition.traj.tobytes())
-        self.socket.send(acquisition.data.tobytes())
+        acquisition.serialize_into(self.socket.send)
 
     def send_waveform(self, waveform):
         self.socket.send(constants.GadgetMessageIdentifier.pack(constants.GADGET_MESSAGE_ISMRMRD_WAVEFORM))
-        self.socket.send(waveform.getHead())
-        self.socket.send(waveform.data.tobytes())
+        waveform.serialize_into(self.socket.send)
 
     def next(self):
 
@@ -93,28 +88,10 @@ class Connection:
         raise StopIteration
 
     def read_gadget_message_ismrmrd_acquisition(self):
-        header_bytes = self.read(ctypes.sizeof(ismrmrd.AcquisitionHeader))
-        acquisition = ismrmrd.Acquisition(header_bytes)
-
-        nentries = acquisition.number_of_samples * acquisition.active_channels
-
-        data_bytes = self.read(nentries * constants.SIZEOF_ISMRMRD_DATA_TYPE)
-        trajectory_bytes = self.read(nentries *
-                                     acquisition.trajectory_dimensions *
-                                     constants.SIZEOF_ISMRMRD_TRAJECTORY_TYPE)
-
-        data = np.frombuffer(data_bytes, dtype=np.complex64)
-        trajectory = np.frombuffer(trajectory_bytes, dtype=np.float32)
-
-        acquisition.data[:] = data.reshape((acquisition.active_channels,
-                                            acquisition.number_of_samples))[:]
-        acquisition.traj[:] = trajectory.reshape((acquisition.number_of_samples,
-                                                  acquisition.trajectory_dimensions))[:]
-
-        return acquisition
+        return ismrmrd.Acquisition.deserialize_from(self.read)
 
     def read_gadget_message_ismrmrd_waveform(self):
-        raise Exception("I don't know how to receive a waveform yet. Sorry.")
+        return ismrmrd.Waveform.deserialize_from(self.read)
 
     def read_gadget_message_ismrmrd_image(self):
-        raise Exception("I don't know how to receive an image yet. Sorry")
+        return ismrmrd.Image.deserialize_from(self.read)

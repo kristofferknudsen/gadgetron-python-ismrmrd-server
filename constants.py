@@ -35,14 +35,6 @@ GADGET_MESSAGE_RECONDATA                              = 1023
 GADGET_MESSAGE_ISMRMRD_WAVEFORM                       = 1026
 GADGET_MESSAGE_EXT_ID_MAX                             = 4096
 
-
-MAX_BLOBS_LOG_10 = 6
-
-ISMRMRDDataType = struct.Struct('<2f')
-SIZEOF_ISMRMRD_DATA_TYPE = len(ISMRMRDDataType.pack(0.0, 0.0))
-ISMRMRDTrajectoryType = struct.Struct('<f')
-SIZEOF_ISMRMRD_TRAJECTORY_TYPE = len(ISMRMRDTrajectoryType.pack(0.0))
-
 GadgetMessageLength = struct.Struct('<I')
 SIZEOF_GADGET_MESSAGE_LENGTH = len(GadgetMessageLength.pack(0))
 
@@ -52,11 +44,3 @@ SIZEOF_GADGET_MESSAGE_IDENTIFIER = len(GadgetMessageIdentifier.pack(0))
 GadgetMessageConfigurationFile = struct.Struct('<1024s')
 SIZEOF_GADGET_MESSAGE_CONFIGURATION_FILE = len(GadgetMessageConfigurationFile.pack(b''))
 
-GadgetMessageAttribLength = struct.Struct('<Q')
-SIZEOF_GADGET_MESSAGE_ATTRIB_LENGTH = len(GadgetMessageAttribLength.pack(0))
-
-GadgetMessageBlobSize = struct.Struct('<I')
-SIZEOF_GADGET_MESSAGE_BLOB_SIZE = len(GadgetMessageBlobSize.pack(0))
-
-GadgetMessageBlobFilename = struct.Struct('<Q')
-SIZEOF_GADGET_MESSAGE_BLOB_FILENAME = len(GadgetMessageBlobFilename.pack(0))
